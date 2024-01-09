@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/time.h>
 
 //------------------------------------------------------------------------------
 #include "lib_fbui/lib_fb.h"
@@ -33,6 +34,7 @@
 
 //------------------------------------------------------------------------------
 enum {
+    eID_IP = 23,
     eID_0 = 140,
     eID_1 = 142,
     eID_2 = 144,
@@ -100,12 +102,30 @@ void alive_display (fb_info_t *pfb, ui_grp_t *pui)
 }
 
 //------------------------------------------------------------------------------
+struct nlp_info nlp_info;
+
+int nlp_connect (fb_info_t *pfb, ui_grp_t *pui)
+{
+    // nlp init
+    memset (&nlp_info, 0, sizeof(nlp_info));
+    ui_set_ritem (pfb, pui, 23, COLOR_RED, -1);
+    if (nlp_init (&nlp_info, NLP_IFACE_NAME)) {
+        char msg[100];
+        memset (msg, 0, sizeof(msg));
+        sprintf (msg, "%s,%s,%s", nlp_info.mac, nlp_info.ip, "ODROID MAC PRINTER");
+        nlp_printf (&nlp_info, MSG_TYPE_ERR, msg, CH_NONE);
+        ui_set_printf   (pfb, pui, 23, "%s", nlp_info.ip);
+        return 1;
+    }
+    return 0;
+}
+
+//------------------------------------------------------------------------------
 int main (void)
 {
     fb_info_t   *pfb;
     ui_grp_t    *pui;
     ts_t        *p_ts;
-    struct nlp_info nlp_info;
 
     if ((pfb = fb_init (DEVICE_FB)) == NULL) {
         fprintf(stdout, "ERROR: frame buffer init fail!\n");
@@ -118,19 +138,7 @@ int main (void)
         }
         ui_update(pfb, pui, -1);
 
-        // nlp init
-        memset (&nlp_info, 0, sizeof(nlp_info));
-        if (nlp_init (&nlp_info, NLP_IFACE_NAME)) {
-            char msg[100];
-            memset (msg, 0, sizeof(msg));
-            sprintf (msg, "%s,%s,%s", nlp_info.mac, nlp_info.ip, "ODROID MAC PRINTER");
-            nlp_printf (&nlp_info, MSG_TYPE_ERR, msg, CH_NONE);
-            ui_set_printf   (pfb, pui, 23, "%s", nlp_info.ip);
-
-        } else {
-            fprintf(stdout, "ERROR: NLP init fail!\n");
-            exit(1);
-        }
+        ui_set_ritem (pfb, pui, 23, nlp_connect (pfb, pui) ? pui->bc.uint : COLOR_GRAY, -1);
 
         // ts init
         if ((p_ts = ts_init ("/dev/input/event0")) == NULL) {
@@ -153,7 +161,11 @@ int main (void)
             alive_display(pfb, pui);
             if (ts_get_event (p_ts, &event)) {
                 ui_id = ui_get_titem (pfb, pui, &event);
-                if (event.status == eTS_STATUS_RELEASE) {
+
+                if ((event.status == eTS_STATUS_RELEASE) && (ui_id == eID_IP))
+                    ui_set_ritem (pfb, pui, 23, nlp_connect (pfb, pui) ? pui->bc.uint : COLOR_GRAY, -1);
+
+                if ((event.status == eTS_STATUS_RELEASE) && nlp_info.conn) {
                     num = 0;
                     switch (ui_id) {
                         case eID_0: num = '0';  break;
@@ -191,7 +203,7 @@ int main (void)
                     }
                     if (num != 0) {
                         mac_addr [mac_input_pos] = num;
-                        if (mac_input_pos < sizeof(mac_addr) -1)
+                        if (mac_input_pos < (int)(sizeof(mac_addr) -1))
                             mac_input_pos++;
                     }
                     memset  (print_mac, 0, sizeof(print_mac));
