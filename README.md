@@ -13,7 +13,7 @@ https://dn.odroid.com/RK3566/ODROID-M1S/Ubuntu/ubuntu-20.04-server-odroidm1s-202
 root@server:/home/odroid# apt update && apt upgrade -y
 
 // ubuntu package
-root@server:~# apt install samba ssh build-essential python3 python3-pip ethtool net-tools usbutils git i2c-tools vim cups cups-bsd overlayroot nmap
+root@server:~# apt install samba ssh build-essential python3 python3-pip ethtool net-tools usbutils git i2c-tools vim cups cups-bsd overlayroot nmap evtest
 
 // python3 package
 root@server:~# pip install aiohttp asyncio
@@ -94,7 +94,23 @@ overlayroot="tmpfs"
 ```
 
 ### 사용 submodule
+* lib_fbui submodule은 branch를 v2.0으로 변경하여 사용함.
+
 ```
+root@server:~# git clone https://github.com/charles-park/mac_printer
+Cloning into 'mac_printer'...
+remote: Enumerating objects: 6, done.
+remote: Counting objects: 100% (6/6), done.
+remote: Compressing objects: 100% (3/3), done.
+remote: Total 6 (delta 0), reused 0 (delta 0), pack-reused 0
+Unpacking objects: 100% (6/6), 2.43 KiB | 497.00 KiB/s, done.
+root@server:~# cd mac_printer/
+root@server:~/mac_printer#
+
+root@server:~/mac_printer# git submodule add https://github.com/charles-park/lib_fbui
+root@server:~/mac_printer# git submodule add https://github.com/charles-park/lib_nlp
+root@server:~/mac_printer# 
+
 ```
 
 
