@@ -34,7 +34,8 @@
 
 //------------------------------------------------------------------------------
 enum {
-    eID_IP = 23,
+    eID_BIP = 23,
+    eID_PIP = 33,
     eID_0 = 140,
     eID_1 = 142,
     eID_2 = 144,
@@ -104,20 +105,32 @@ void alive_display (fb_info_t *pfb, ui_grp_t *pui)
 //------------------------------------------------------------------------------
 struct nlp_info nlp_info;
 
-int nlp_connect (fb_info_t *pfb, ui_grp_t *pui)
+void nlp_connect (fb_info_t *pfb, ui_grp_t *pui, int id_bip, int id_pip)
 {
+    ui_set_ritem (pfb, pui, id_bip, COLOR_RED, -1);
+    ui_set_ritem (pfb, pui, id_pip, COLOR_RED, -1);
+
+    // get board ip
+    memset (&nlp_info, 0, sizeof(nlp_info));
+    if (get_iface_info(&nlp_info, NLP_IFACE_NAME)) {
+        ui_set_ritem  (pfb, pui, id_bip, pui->bc.uint, -1);
+        ui_set_printf (pfb, pui, id_bip, "M1S: %s", nlp_info.ip);
+    }
+    else
+        ui_set_ritem  (pfb, pui, id_bip, COLOR_GRAY, -1);
+
     // nlp init
     memset (&nlp_info, 0, sizeof(nlp_info));
-    ui_set_ritem (pfb, pui, 23, COLOR_RED, -1);
     if (nlp_init (&nlp_info, NLP_IFACE_NAME)) {
         char msg[100];
         memset (msg, 0, sizeof(msg));
         sprintf (msg, "%s,%s,%s", nlp_info.mac, nlp_info.ip, "ODROID MAC PRINTER");
         nlp_printf (&nlp_info, MSG_TYPE_ERR, msg, CH_NONE);
-        ui_set_printf   (pfb, pui, 23, "%s", nlp_info.ip);
-        return 1;
+        ui_set_ritem  (pfb, pui, id_pip, pui->bc.uint, -1);
+        ui_set_printf (pfb, pui, id_pip, "NLP: %s", nlp_info.ip);
     }
-    return 0;
+    else
+        ui_set_ritem  (pfb, pui, id_pip, COLOR_GRAY, -1);
 }
 
 //------------------------------------------------------------------------------
@@ -138,7 +151,7 @@ int main (void)
         }
         ui_update(pfb, pui, -1);
 
-        ui_set_ritem (pfb, pui, 23, nlp_connect (pfb, pui) ? pui->bc.uint : COLOR_GRAY, -1);
+        nlp_connect (pfb, pui, 23, 33);
 
         // ts init
         if ((p_ts = ts_init ("/dev/input/event0")) == NULL) {
@@ -162,8 +175,8 @@ int main (void)
             if (ts_get_event (p_ts, &event)) {
                 ui_id = ui_get_titem (pfb, pui, &event);
 
-                if ((event.status == eTS_STATUS_RELEASE) && (ui_id == eID_IP))
-                    ui_set_ritem (pfb, pui, 23, nlp_connect (pfb, pui) ? pui->bc.uint : COLOR_GRAY, -1);
+                if ((event.status == eTS_STATUS_RELEASE) && (ui_id == 20))
+                    nlp_connect (pfb, pui, 23, 33);
 
                 if ((event.status == eTS_STATUS_RELEASE) && nlp_info.conn) {
                     num = 0;
@@ -194,9 +207,13 @@ int main (void)
                             mac_input_pos = 0;
                             break;
                         case eID_PRINT:
-                            memset  (print_mac, 0, sizeof(print_mac));
-                            sprintf (print_mac, "001E06%s", mac_addr);
-                            nlp_printf (&nlp_info, MSG_TYPE_MAC, print_mac, CH_LEFT);
+                            if ((nlp_info.conn = nlp_status (nlp_info.ip))) {
+                                memset  (print_mac, 0, sizeof(print_mac));
+                                sprintf (print_mac, "001E06%s", mac_addr);
+                                nlp_printf (&nlp_info, MSG_TYPE_MAC, print_mac, CH_LEFT);
+                            } else {
+                                ui_set_ritem  (pfb, pui, 33, COLOR_GRAY, -1);
+                            }
                             break;
                         default :
                             break;
