@@ -116,8 +116,11 @@ void nlp_connect (fb_info_t *pfb, ui_grp_t *pui, int id_bip, int id_pip)
         ui_set_ritem  (pfb, pui, id_bip, pui->bc.uint, -1);
         ui_set_printf (pfb, pui, id_bip, "M1S: %s", nlp_info.ip);
     }
-    else
+    else {
+        ui_set_ritem  (pfb, pui, id_pip, COLOR_GRAY, -1);
         ui_set_ritem  (pfb, pui, id_bip, COLOR_GRAY, -1);
+        return;
+    }
 
     // nlp init
     memset (&nlp_info, 0, sizeof(nlp_info));
