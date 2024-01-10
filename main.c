@@ -34,6 +34,7 @@
 
 //------------------------------------------------------------------------------
 enum {
+    eID_OFF = 0,
     eID_BIP = 23,
     eID_PIP = 33,
     eID_0 = 140,
@@ -217,6 +218,9 @@ int main (void)
                             } else {
                                 ui_set_ritem  (pfb, pui, 33, COLOR_GRAY, -1);
                             }
+                            break;
+                        case eID_OFF:
+                            system ("poweroff");
                             break;
                         default :
                             break;
